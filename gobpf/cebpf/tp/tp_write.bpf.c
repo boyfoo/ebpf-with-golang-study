@@ -31,15 +31,13 @@ int is_eq(char* str1, char* str2) {
 // 函数名随意取
 SEC("tracepoint/syscalls/sys_enter_write")
 int handle_tp(void* ctx) {
-    char app_name[] = "testwrite";
     struct data_t data = {};
     data.pid = bpf_get_current_pid_tgid() >> 32;
     bpf_get_current_comm(&data.comm, sizeof(data.comm));
-    int eq = is_eq(data.comm, app_name);
-    if (eq == 1) {
-        // 向用户态发送数据
-        bpf_perf_event_output(ctx, &log_map, 0, &data.comm, sizeof(data.comm));
-        // bpf_printk("pid=%d, name:%s \n", data.pid, data.comm);
-    }
+    // 向用户态发送数据
+    // bpf_perf_event_output(ctx, &log_map, 0, &data.comm, sizeof(data.comm));
+    // 传递整个结构体 上面的只传递了字符串
+    bpf_perf_event_output(ctx, &log_map, 0, &data, sizeof(data));
+    // bpf_printk("pid=%d, name:%s \n", data.pid, data.comm);
     return 0;
 }

@@ -1,14 +1,22 @@
 package tp
 
 import (
+	"bytes"
 	"errors"
 	"log"
 	"os"
+	"unsafe"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/rlimit"
 )
+
+// 自定义一个结构体 要和C代码里的结构体字段一样
+type MyDataT struct {
+	Pid  uint32
+	Comm [256]byte
+}
 
 func LoadTp001() {
 
@@ -44,8 +52,16 @@ func LoadTp001() {
 			continue
 		}
 
-		log.Println("Record:",string(record.RawSample))
-
+		if len(record.RawSample) > 0 {
+			data := (*MyDataT)(unsafe.Pointer(&record.RawSample[0]))
+			b := bytes.TrimRight(data.Comm[:], "\x00")
+			str := string(b)
+			if str == "testwrite" {
+				log.Println("进程名:", str)
+			}
+		} else {
+			log.Println("Record:", string(record.RawSample))
+		}
 	}
 
 }

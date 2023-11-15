@@ -20,6 +20,6 @@ func main() {
 	for {
 		writeFile()
 		fmt.Println("成功写入 休眠5S", time.Now())
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 1)
 	}
 }
