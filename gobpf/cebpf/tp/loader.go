@@ -1,10 +1,12 @@
 package tp
 
 import (
+	"errors"
 	"log"
-	"time"
+	"os"
 
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/rlimit"
 )
 
@@ -26,6 +28,24 @@ func LoadTp001() {
 	}
 	defer tp.Close()
 
-	time.Sleep(time.Second * 1000)
+	rd, err := perf.NewReader(tcObj.LogMap, os.Getpagesize())
+	if err != nil {
+		log.Fatalln("opening perf event reader", err)
+	}
+
+	for {
+		record, err := rd.Read()
+		if err != nil {
+			if errors.Is(err, perf.ErrClosed) {
+				log.Fatalln("perf reader closed", err)
+				return
+			}
+			log.Fatalln("reading perf event", err)
+			continue
+		}
+
+		log.Println("Record:",string(record.RawSample))
+
+	}
 
 }
