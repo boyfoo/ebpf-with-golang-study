@@ -36,9 +36,6 @@ int handle_tp(void* ctx) {
     data.pid = bpf_get_current_pid_tgid() >> 32;
     bpf_get_current_comm(&data.comm, sizeof(data.comm));
     int eq = is_eq(data.comm, app_name);
-
-
-
     if (eq == 1) {
         // 向用户态发送数据
         bpf_perf_event_output(ctx, &log_map, 0, &data.comm, sizeof(data.comm));
