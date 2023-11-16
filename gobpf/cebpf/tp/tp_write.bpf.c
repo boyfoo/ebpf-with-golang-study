@@ -9,35 +9,29 @@ struct data_t {
     char comm[256];  // NAME MAX 文件名的最大长度，通常也可以用于进程或线程名称的最大长度
 };
 
-struct bpf_map_def SEC("maps") log_map = {
-    .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,  // 类型
-    .key_size = sizeof(u32),
-    .value_size = sizeof(__u32),
-    .max_entries = 0,  // 用户态不需要向他发送数据 可以为0
-};
+// struct bpf_map_def SEC("maps") log_map = {
+//     .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,  // 类型
+//     .key_size = sizeof(u32),
+//     .value_size = sizeof(__u32),
+//     .max_entries = 0,  // 用户态不需要向他发送数据 可以为0
+// };
 
-int is_eq(char* str1, char* str2) {
-    int eq = 1;
-    int i;
-    for (i = 0; i < sizeof(str1) - 1 && i < sizeof(str2) - 1; i++) {
-        if (str1[i] != str2[i]) {
-            eq = 0;
-            break;
-        }
-    }
-    return eq;
-}
+struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 24);
+} log_map SEC(".maps");
 
 // 函数名随意取
 SEC("tracepoint/syscalls/sys_enter_write")
 int handle_tp(void* ctx) {
-    struct data_t data = {};
-    data.pid = bpf_get_current_pid_tgid() >> 32;
-    bpf_get_current_comm(&data.comm, sizeof(data.comm));
-    // 向用户态发送数据
-    // bpf_perf_event_output(ctx, &log_map, 0, &data.comm, sizeof(data.comm));
-    // 传递整个结构体 上面的只传递了字符串
-    bpf_perf_event_output(ctx, &log_map, 0, &data, sizeof(data));
-    // bpf_printk("pid=%d, name:%s \n", data.pid, data.comm);
+    struct data_t* data;
+    data = bpf_ringbuf_reserve(&log_map, sizeof(*data), 0);
+    if (!data) {
+        return 0;
+    }
+    data->pid = bpf_get_current_pid_tgid() >> 32;
+    bpf_get_current_comm(&data->comm, sizeof(data->comm));
+    // 提交数据到 ring buffer
+    bpf_ringbuf_submit(data, 0);
     return 0;
 }

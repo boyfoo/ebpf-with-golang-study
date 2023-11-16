@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"log"
-	"os"
 	"unsafe"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/ebpf/rlimit"
 )
 
@@ -36,7 +36,7 @@ func LoadTp001() {
 	}
 	defer tp.Close()
 
-	rd, err := perf.NewReader(tcObj.LogMap, os.Getpagesize())
+	rd, err := ringbuf.NewReader(tcObj.LogMap)
 	if err != nil {
 		log.Fatalln("opening perf event reader", err)
 	}
