@@ -14,7 +14,11 @@ import (
 
 type IpData struct {
 	Sip   uint32
+	Dip   uint32
 	PktSz uint32
+	III   uint32
+	Sport uint16
+	Dport uint16
 }
 
 func LoadXDP() {
@@ -55,9 +59,16 @@ func LoadXDP() {
 		if len(record.RawSample) > 0 {
 
 			data := (*IpData)(unsafe.Pointer(&record.RawSample[0]))
-			ipv4 := net.IPv4(byte(data.Sip), byte(data.Sip>>8), byte(data.Sip>>16), byte(data.Sip>>24))
+			// sipv4 := net.IPv4(byte(data.Sip), byte(data.Sip>>8), byte(data.Sip>>16), byte(data.Sip>>24))
+			// dipv4 := net.IPv4(byte(data.Dip), byte(data.Dip>>8), byte(data.Dip>>16), byte(data.Dip>>24))
+			sipv4 := net.IPv4(byte(data.Sip>>24), byte(data.Sip>>16), byte(data.Sip>>8), byte(data.Sip))
+			dipv4 := net.IPv4(byte(data.Dip>>24), byte(data.Dip>>16), byte(data.Dip>>8), byte(data.Dip))
 
-			fmt.Println("来源ip是：", ipv4.String())
+			fmt.Printf("来源ip是：%s\n", sipv4.String())
+			fmt.Printf("目的ip是：%s\n", dipv4.String())
+			fmt.Printf("网卡index%d\n", data.III)
+			fmt.Printf("来源端口%d\n", data.Sport)
+			fmt.Printf("目的端口%d\n", data.Dport)
 		}
 
 	}
