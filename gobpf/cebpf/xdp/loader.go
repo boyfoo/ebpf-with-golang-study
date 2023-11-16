@@ -1,6 +1,7 @@
 package xdp
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log"
@@ -61,8 +62,8 @@ func LoadXDP() {
 			data := (*IpData)(unsafe.Pointer(&record.RawSample[0]))
 			// sipv4 := net.IPv4(byte(data.Sip), byte(data.Sip>>8), byte(data.Sip>>16), byte(data.Sip>>24))
 			// dipv4 := net.IPv4(byte(data.Dip), byte(data.Dip>>8), byte(data.Dip>>16), byte(data.Dip>>24))
-			sipv4 := net.IPv4(byte(data.Sip>>24), byte(data.Sip>>16), byte(data.Sip>>8), byte(data.Sip))
-			dipv4 := net.IPv4(byte(data.Dip>>24), byte(data.Dip>>16), byte(data.Dip>>8), byte(data.Dip))
+			sipv4 := resolveIP(data.Sip, true)
+			dipv4 := resolveIP(data.Dip, true)
 
 			fmt.Printf("来源ip是：%s\n", sipv4.String())
 			fmt.Printf("目的ip是：%s\n", dipv4.String())
@@ -72,4 +73,15 @@ func LoadXDP() {
 		}
 
 	}
+}
+
+func resolveIP(input_ip uint32, isbig bool) net.IP {
+	ipNetworkOrder := make([]byte, 4)
+	if isbig {
+		binary.BigEndian.PutUint32(ipNetworkOrder, input_ip)
+	} else {
+		binary.LittleEndian.PutUint32(ipNetworkOrder, input_ip)
+	}
+
+	return ipNetworkOrder
 }
