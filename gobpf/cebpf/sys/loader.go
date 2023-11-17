@@ -14,6 +14,7 @@ import (
 // 自定义一个结构体 要和C代码里的结构体字段一样
 type Proc struct {
 	Pid   uint32
+	PPid  uint32
 	Pname [256]byte
 }
 
@@ -50,10 +51,8 @@ func LoadSys() {
 			data := (*Proc)(unsafe.Pointer(&record.RawSample[0]))
 			b := bytes.TrimRight(data.Pname[:], "\x00")
 			str := string(b)
-			log.Println("进程名:", str, data.Pid)
-		} else {
-			log.Println("Record:", string(record.RawSample))
-		}
+			log.Printf(" 进程名: %s, 进程id: %d, 父id: %d \n", str, data.Pid, data.PPid)
+		} 
 	}
 
 }
