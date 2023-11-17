@@ -8,6 +8,7 @@ import (
 	"net"
 	"unsafe"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/ringbuf"
@@ -29,6 +30,10 @@ func LoadXDP() {
 		log.Fatalln(err)
 	}
 	defer xdpObj.Close()
+
+	// 初始化白名单
+	initAllowMap(xdpObj.AllowIpsMap)
+
 	iface, err := net.InterfaceByName("docker0")
 	if err != nil {
 		log.Fatalln(err)
@@ -84,4 +89,13 @@ func resolveIP(input_ip uint32, isbig bool) net.IP {
 	}
 
 	return ipNetworkOrder
+}
+
+func initAllowMap(m *ebpf.Map) {
+	ip1 := binary.BigEndian.Uint32(net.ParseIP("172.17.0.2").To4())
+	// 类型要和bpf.c类型相等
+	err := m.Put(ip1 , uint8(1))
+	if err != nil {
+		fmt.Println("设置白名单错误", err)
+	}
 }

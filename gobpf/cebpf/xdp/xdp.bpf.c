@@ -18,6 +18,13 @@ struct {
     __uint(max_entries, 1 << 20);
 } ip_map SEC(".maps");
 
+struct bpf_map_def SEC("maps") allow_ips_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u8),
+    .max_entries = 1024,
+};
+
 SEC("xdp")
 int my_pass(struct xdp_md* ctx) {
     void* data = (void*)(long)ctx->data;
@@ -60,8 +67,20 @@ int my_pass(struct xdp_md* ctx) {
     ipdata->sport = bpf_ntohs(tcp->source);  // 网络字节序转成主机字节序号
     ipdata->dport = bpf_ntohs(tcp->dest);
 
+    // 发送当前的tcp访问数据
     bpf_ringbuf_submit(ipdata, 0);
-    return XDP_PASS;
+
+    __u32 sip = bpf_ntohl(ip->saddr);
+
+    // 对应的sip是否在map里
+    __u8* allow = bpf_map_lookup_elem(&allow_ips_map, &sip);
+
+    // 为什么等于1 因为用户态设置map的时候值都设置为了1
+    if (allow && *allow == 1) {
+        return XDP_PASS;
+    }
+
+    return XDP_DROP;
 }
 
 char __license[] SEC("license") = "GPL";
