@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"log"
+	"time"
 	"unsafe"
 
 	"github.com/cilium/ebpf/link"
@@ -17,6 +18,24 @@ type Proc struct {
 	Pid   uint32
 	PPid  uint32
 	Pname [256]byte
+}
+
+func LoadSwich() {
+	sysObj := sysObjects{}
+	err := loadSysObjects(&sysObj, nil)
+	if err != nil {
+		log.Fatalln("装载出错", err)
+	}
+	//通过 cat /sys/kernel/debug/tracing/available_filter_functions| grep finish_task_switch 查看名称
+	tp, err := link.Kprobe("finish_task_switch.isra.0", sysObj.FinishTaskSwitch, nil)
+	if err != nil {
+		log.Fatalln("opening finish_task_switch", err)
+	}
+	defer tp.Close()
+
+	for {
+		time.Sleep(time.Second * 2)
+	}
 }
 
 func LoadSys() {

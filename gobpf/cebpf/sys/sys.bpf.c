@@ -1,5 +1,5 @@
 //go:build ignore
-//     #include <common.h>
+//            #include <common.h>
 #include <vmlinux.h>
 
 #include <bpf_helpers.h>
@@ -32,9 +32,9 @@ int handle(void* ctx) {
     p->ppid = 0;
 
     // 当前执行进程的对应的task_struct指针
-    struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+    struct task_struct* task = (struct task_struct*)bpf_get_current_task();
     if (task) {
-        struct task_struct *parent = NULL;
+        struct task_struct* parent = NULL;
         //     // 读取到父进程task_struct
         bpf_probe_read_kernel(&parent, sizeof(parent), &task->real_parent);
         if (parent) {
@@ -43,5 +43,25 @@ int handle(void* ctx) {
     }
     bpf_get_current_comm(&p->pname, sizeof(p->pname));
     bpf_ringbuf_submit(p, 0);
+    return 0;
+}
+
+// 内核进程切换运行的时候触发
+SEC("kprobe/finish_task_switch")
+int finish_task_switch(struct task_struct* pre) {
+    __u32 cur_pid = 0;
+    // 上个进程
+    __u32 pre_pid = 0;
+    // 当前进程
+    struct task_struct* cur = (struct task_struct*)bpf_get_current_task();
+    if (cur) {
+        bpf_probe_read_kernel(&cur_pid, sizeof(cur_pid), &(cur->pid));
+    }
+    if (pre) {
+        bpf_probe_read_kernel(&pre_pid, sizeof(pre_pid), &(pre->pid));
+    }
+    if (pre_pid != 0) {
+        bpf_printk("cur_pid=%u pre_pid=%u \n", cur_pid, pre_pid);
+    }
     return 0;
 }

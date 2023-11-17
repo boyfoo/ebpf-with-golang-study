@@ -53,7 +53,8 @@ type sysSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type sysProgramSpecs struct {
-	Handle *ebpf.ProgramSpec `ebpf:"handle"`
+	FinishTaskSwitch *ebpf.ProgramSpec `ebpf:"finish_task_switch"`
+	Handle           *ebpf.ProgramSpec `ebpf:"handle"`
 }
 
 // sysMapSpecs contains maps before they are loaded into the kernel.
@@ -95,11 +96,13 @@ func (m *sysMaps) Close() error {
 //
 // It can be passed to loadSysObjects or ebpf.CollectionSpec.LoadAndAssign.
 type sysPrograms struct {
-	Handle *ebpf.Program `ebpf:"handle"`
+	FinishTaskSwitch *ebpf.Program `ebpf:"finish_task_switch"`
+	Handle           *ebpf.Program `ebpf:"handle"`
 }
 
 func (p *sysPrograms) Close() error {
 	return _SysClose(
+		p.FinishTaskSwitch,
 		p.Handle,
 	)
 }

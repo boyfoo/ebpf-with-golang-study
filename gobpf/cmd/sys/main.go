@@ -7,5 +7,6 @@ import (
 
 func main() {
 	fmt.Println("run")
-	sys.LoadSys()
+	// sys.LoadSys()
+	sys.LoadSwich()
 }
