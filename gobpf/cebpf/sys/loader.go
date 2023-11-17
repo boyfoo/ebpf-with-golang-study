@@ -12,6 +12,7 @@ import (
 )
 
 // 自定义一个结构体 要和C代码里的结构体字段一样
+// 顺序必须和C字段顺序一样
 type Proc struct {
 	Pid   uint32
 	PPid  uint32
@@ -52,7 +53,7 @@ func LoadSys() {
 			b := bytes.TrimRight(data.Pname[:], "\x00")
 			str := string(b)
 			log.Printf(" 进程名: %s, 进程id: %d, 父id: %d \n", str, data.Pid, data.PPid)
-		} 
+		}
 	}
 
 }
