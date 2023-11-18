@@ -9,5 +9,6 @@ func main() {
 	fmt.Println("run")
 	// sys.LoadSys()
 	// sys.LoadSwich()
-	sys.LoadBash()
+	// sys.LoadBash()
+	sys.LoadGolangFunc()
 }

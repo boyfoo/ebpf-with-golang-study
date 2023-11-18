@@ -56,6 +56,7 @@ type sysProgramSpecs struct {
 	BashReadline     *ebpf.ProgramSpec `ebpf:"bash_readline"`
 	FinishTaskSwitch *ebpf.ProgramSpec `ebpf:"finish_task_switch"`
 	Handle           *ebpf.ProgramSpec `ebpf:"handle"`
+	MyRes            *ebpf.ProgramSpec `ebpf:"my_res"`
 }
 
 // sysMapSpecs contains maps before they are loaded into the kernel.
@@ -103,6 +104,7 @@ type sysPrograms struct {
 	BashReadline     *ebpf.Program `ebpf:"bash_readline"`
 	FinishTaskSwitch *ebpf.Program `ebpf:"finish_task_switch"`
 	Handle           *ebpf.Program `ebpf:"handle"`
+	MyRes            *ebpf.Program `ebpf:"my_res"`
 }
 
 func (p *sysPrograms) Close() error {
@@ -110,6 +112,7 @@ func (p *sysPrograms) Close() error {
 		p.BashReadline,
 		p.FinishTaskSwitch,
 		p.Handle,
+		p.MyRes,
 	)
 }
 

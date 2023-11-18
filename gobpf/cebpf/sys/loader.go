@@ -124,3 +124,46 @@ func LoadBash() {
 	}
 
 }
+
+func LoadGolangFunc() {
+	sysObj := sysObjects{}
+	err := loadSysObjects(&sysObj, nil)
+	if err != nil {
+		log.Fatalln("failed to load LoadBash", err)
+	}
+	// 运行文件的地址
+	ex, err := link.OpenExecutable("/root/mytest/gobpf/http")
+	if err != nil {
+		log.Fatalln("OpenExecutable", err)
+	}
+	up, err := ex.Uretprobe("main.MyRes", sysObj.MyRes, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer up.Close()
+
+	rd, err := ringbuf.NewReader(sysObj.EventMap)
+	if err != nil {
+		log.Fatalln("opening perf event reader", err)
+	}
+
+	for {
+		record, err := rd.Read()
+		if err != nil {
+			if errors.Is(err, perf.ErrClosed) {
+				log.Fatalln("perf reader closed", err)
+				return
+			}
+			log.Fatalln("reading perf event", err)
+			continue
+		}
+
+		if len(record.RawSample) > 0 {
+			data := (*BaseEvent)(unsafe.Pointer(&record.RawSample[0]))
+			// 更简单的读法
+			str := unix.ByteSliceToString(data.Line[:])
+			log.Printf("进程id: %d, 内容: %s \n", data.Pid, str)
+		}
+	}
+
+}

@@ -90,3 +90,19 @@ int bash_readline(struct pt_regs* ctx) {
     bpf_ringbuf_submit(event, 0);
     return 0;
 }
+
+// nm http | grep MyRes 函数名称通过这个擦看
+SEC("uretprobe/main.MyRes")
+int my_res(struct pt_regs* ctx) {
+    struct base_event* event = NULL;
+    event = bpf_ringbuf_reserve(&event_map, sizeof(*event), 0);
+    if (!event) {
+        return 0;
+    }
+    event->pid = bpf_get_current_pid_tgid() >> 32;
+    // PT_REGS_RC 获取函数的返回值
+    // 从用户态读用户数据 所以不用 bpf_probe_read_kernel
+    bpf_probe_read(&event->line, sizeof(event->line), (void*)PT_REGS_RC(ctx));
+    bpf_ringbuf_submit(event, 0);
+    return 0;
+}
