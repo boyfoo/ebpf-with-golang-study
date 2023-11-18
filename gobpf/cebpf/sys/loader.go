@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/ringbuf"
+	"golang.org/x/sys/unix"
 )
 
 // 自定义一个结构体 要和C代码里的结构体字段一样
@@ -72,6 +73,53 @@ func LoadSys() {
 			b := bytes.TrimRight(data.Pname[:], "\x00")
 			str := string(b)
 			log.Printf(" 进程名: %s, 进程id: %d, 父id: %d \n", str, data.Pid, data.PPid)
+		}
+	}
+
+}
+
+type BaseEvent struct {
+	Pid  uint32
+	Line [80]byte
+}
+
+func LoadBash() {
+	sysObj := sysObjects{}
+	err := loadSysObjects(&sysObj, nil)
+	if err != nil {
+		log.Fatalln("failed to load LoadBash", err)
+	}
+	ex, err := link.OpenExecutable("/bin/bash")
+	if err != nil {
+		log.Fatalln("OpenExecutable", err)
+	}
+	up, err := ex.Uretprobe("readline", sysObj.BashReadline, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer up.Close()
+
+	rd, err := ringbuf.NewReader(sysObj.EventMap)
+	if err != nil {
+		log.Fatalln("opening perf event reader", err)
+	}
+
+	for {
+		record, err := rd.Read()
+		if err != nil {
+			if errors.Is(err, perf.ErrClosed) {
+				log.Fatalln("perf reader closed", err)
+				return
+			}
+			log.Fatalln("reading perf event", err)
+			continue
+		}
+
+		if len(record.RawSample) > 0 {
+			data := (*BaseEvent)(unsafe.Pointer(&record.RawSample[0]))
+			// 更简单的读法
+			str := unix.ByteSliceToString(data.Line[:])
+			log.Printf("进程id: %d, 内容: %s,   \n", data.Pid, str)
 		}
 	}
 

@@ -1,5 +1,5 @@
 //go:build ignore
-//            #include <common.h>
+//             #include <common.h>
 #include <vmlinux.h>
 
 #include <bpf_helpers.h>
@@ -63,5 +63,30 @@ int finish_task_switch(struct task_struct* pre) {
     if (pre_pid != 0) {
         bpf_printk("cur_pid=%u pre_pid=%u \n", cur_pid, pre_pid);
     }
+    return 0;
+}
+
+struct base_event {
+    u32 pid;
+    u8 line[80];
+};
+
+struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 20);
+} event_map SEC(".maps");
+
+SEC("uretprobe/bash_readline")
+int bash_readline(struct pt_regs* ctx) {
+    struct base_event* event = NULL;
+    event = bpf_ringbuf_reserve(&event_map, sizeof(*event), 0);
+    if (!event) {
+        return 0;
+    }
+    event->pid = bpf_get_current_pid_tgid() >> 32;
+    // PT_REGS_RC 获取函数的返回值
+    // 从用户态读用户数据 所以不用 bpf_probe_read_kernel
+    bpf_probe_read(&event->line, sizeof(event->line), (void*)PT_REGS_RC(ctx));
+    bpf_ringbuf_submit(event, 0);
     return 0;
 }
