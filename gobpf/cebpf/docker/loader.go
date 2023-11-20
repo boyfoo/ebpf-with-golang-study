@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/ringbuf"
+	"golang.org/x/sys/unix"
 )
 
 type IpData struct {
@@ -62,9 +63,10 @@ func LoadDockerXdp() {
 
 			ipAddr1 := nethelper.ResolveIP(data.SIP, true)
 			ipAddr2 := nethelper.ResolveIP(data.DIP, true)
-			fmt.Printf("来源IP:%s---->目标IP:%s\n",
+			fmt.Printf("来源IP:%s---->目标IP:%s，报文内容：\n%s\n",
 				ipAddr1.To4().String(),
 				ipAddr2.To4().String(),
+				unix.ByteSliceToString(data.PayLoad[:]),
 			)
 		}
 	}
