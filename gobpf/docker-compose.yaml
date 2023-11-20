@@ -1,0 +1,35 @@
+version: '3'
+services:
+  nginx1:
+    image: nginx:latest
+    container_name: nginx1
+    ports:
+      - 8081:80
+    restart: always
+
+  nginx2:
+    image: nginx:latest
+    container_name: nginx2
+    ports:
+      - 8082:80
+    restart: always
+
+#   mysqlapp:
+#     image: golang:1.18
+#     container_name: mysqlapp
+#     ports:
+#       - 8083:80
+#     volumes:
+#       - ./:/goapp
+#     working_dir: /goapp
+#     #    获取当前环境环境DB_PASSWORD变量到docker里 在命令行设置DB_PASSWORD在运行docker-compose up -d mysqlapp
+#     # 完整的命令如下 DB_PASSWORD=123456 docker-compose up -d mysqlapp
+#     environment:
+#       - DB_PASSWORD=${DB_PASSWORD}
+# #    command: [ "go", "run", "goapp/mysqlapp.go" ]
+#   # 启动容器时运行多行命令，先设置golang国内镜像镜像 在运行服务
+#     command: >
+#       bash -c "
+#       go env -w GOPROXY=https://goproxy.cn,direct && go run goapp/mysqlapp.go
+#       "
+    

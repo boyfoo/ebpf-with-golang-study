@@ -28,3 +28,11 @@ go函数需要有不同返回的可能，如判断，不然写死了查不到这
 
 
 > 截止v1.0
+
+### 监听docker网桥两个 docker 的网络访问
+
+`docker-compose up -d nginx1`
+`docker-compose up -d nginx2`
+`go run cmd/dockerxdp/main.go`
+`docker-compose exec nginx1 bash`
+`curl nginx2`
