@@ -43,3 +43,5 @@ go函数需要有不同返回的可能，如判断，不然写死了查不到这
 `cat /sys/kernel/debug/tracing/trace_pipe`
 
 这次请求的容器必须是使用了docker0网卡网段的地址`curl 172.17.0.2`
+
+截止v1.1
