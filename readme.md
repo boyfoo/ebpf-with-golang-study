@@ -36,3 +36,10 @@ go函数需要有不同返回的可能，如判断，不然写死了查不到这
 `go run cmd/dockerxdp/main.go`
 `docker-compose exec nginx1 bash`
 `curl nginx2`
+
+
+### 使用tc监听网络 
+`go run cmd/tc/main.go`
+`cat /sys/kernel/debug/tracing/trace_pipe`
+
+这次请求的容器必须是使用了docker0网卡网段的地址`curl 172.17.0.2`
