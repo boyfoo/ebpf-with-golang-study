@@ -60,6 +60,7 @@ type dockertcProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type dockertcMapSpecs struct {
+	TcMap *ebpf.MapSpec `ebpf:"tc_map"`
 }
 
 // dockertcObjects contains all objects after they have been loaded into the kernel.
@@ -81,10 +82,13 @@ func (o *dockertcObjects) Close() error {
 //
 // It can be passed to loadDockertcObjects or ebpf.CollectionSpec.LoadAndAssign.
 type dockertcMaps struct {
+	TcMap *ebpf.Map `ebpf:"tc_map"`
 }
 
 func (m *dockertcMaps) Close() error {
-	return _DockertcClose()
+	return _DockertcClose(
+		m.TcMap,
+	)
 }
 
 // dockertcPrograms contains all programs after they have been loaded into the kernel.

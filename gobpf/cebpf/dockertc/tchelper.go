@@ -1,21 +1,31 @@
 package dockertc
 
 import (
+	"errors"
 	"fmt"
+	"gobpf/pkg/heloers/nethelper"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"unsafe"
 
+	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/ebpf/ringbuf"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
 
+type TcData struct {
+	SrcIp uint32
+	DstIp uint32
+}
+
 // 加载tc ebpf程序
-func MakeTc(ifaceName string) {
+func MakeTc(ifaceName string) error {
 	iface, err := netlink.LinkByName(ifaceName)
 	if err != nil {
-		log.Fatalln(1, err)
+		return err
 	}
 	filteratts := netlink.FilterAttrs{
 		LinkIndex: iface.Attrs().Index,
@@ -37,7 +47,7 @@ func MakeTc(ifaceName string) {
 
 	//等同于执行了 tc qdisc add dev docker0 clsact
 	if err := netlink.QdiscAdd(qdisc); err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	defer func() {
@@ -49,7 +59,7 @@ func MakeTc(ifaceName string) {
 	objs := &dockertcObjects{}
 	err = loadDockertcObjects(objs, nil)
 	if err != nil {
-		log.Fatalln(2, err)
+		return err
 	}
 
 	filter := netlink.BpfFilter{
@@ -60,7 +70,7 @@ func MakeTc(ifaceName string) {
 	}
 	// 等同于 tc filter add dev docker0 ingress bpf direct-action obj dockertc_bpfel_x86_64.o
 	if err := netlink.FilterAdd(&filter); err != nil {
-		log.Fatalln(2, err)
+		return err
 	}
 	defer func() {
 		// 等同于 tc qdisc del dev docker0 clsact
@@ -68,9 +78,42 @@ func MakeTc(ifaceName string) {
 			fmt.Println("filterDel err: ", err.Error())
 		}
 	}()
+
+	rd, err := ringbuf.NewReader(objs.TcMap)
+	if err != nil {
+		return err
+	}
+	defer rd.Close()
+
+	go func() {
+		for {
+			record, err := rd.Read()
+			if err != nil {
+				if errors.Is(err, perf.ErrClosed) {
+					log.Println("Received signal, exiting..")
+					return
+				}
+				log.Printf("reading from reader: %s", err)
+				continue
+			}
+
+			if len(record.RawSample) > 0 {
+
+				data := (*TcData)(unsafe.Pointer(&record.RawSample[0]))
+				ipAddr1 := nethelper.ResolveIP(data.SrcIp, true)
+				ipAddr2 := nethelper.ResolveIP(data.DstIp, true)
+				fmt.Printf("来源IP:%s---->目标IP:%s\n",
+					ipAddr1.To4().String(),
+					ipAddr2.To4().String(),
+				)
+			}
+		}
+	}()
+
 	fmt.Println("开始监听")
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-signalChan
 	fmt.Println("退出")
+	return nil
 }
