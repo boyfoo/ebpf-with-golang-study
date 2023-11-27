@@ -16,13 +16,18 @@ struct {
     __uint(max_entries, 1 << 20);
 } tc_map SEC(".maps");
 
+static inline int iph_dr(struct __sk_buff* skb, struct iphdr* iph) {
+    int offset = sizeof(struct ethhdr);
+    return bpf_skb_load_bytes(skb, offset, iph, sizeof(*iph));
+}
+
 SEC("classifier")
 int mytc(struct __sk_buff* skb) {
-    struct ethhdr eth;
-    bpf_skb_load_bytes(skb, 0, &eth, sizeof(eth));
-    int offset = sizeof(eth);
     struct iphdr iph;
-    bpf_skb_load_bytes(skb, offset, &iph, sizeof(iph));
+
+    if (iph_dr(skb, &iph) < 0) {
+        return 0;
+    }
 
     bpf_printk("proto: %d\n", iph.protocol);
 
