@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	dockertc.MakeTc("docker0")
+	dockertc.MakeTc()
 }

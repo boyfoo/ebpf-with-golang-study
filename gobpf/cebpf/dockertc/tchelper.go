@@ -23,11 +23,12 @@ type TcData struct {
 	Dport uint16
 }
 
-// 加载tc ebpf程序
-func MakeTc(ifaceName string) error {
+func watchIface(ifaceName string, fd int, name string) ([]func(), error) {
+	defers := []func(){}
+
 	iface, err := netlink.LinkByName(ifaceName)
 	if err != nil {
-		return err
+		return defers, err
 	}
 	filteratts := netlink.FilterAttrs{
 		LinkIndex: iface.Attrs().Index,
@@ -49,45 +50,60 @@ func MakeTc(ifaceName string) error {
 
 	//等同于执行了 tc qdisc add dev docker0 clsact
 	if err := netlink.QdiscAdd(qdisc); err != nil {
-		return err
+		return defers, err
 	}
 
-	defer func() {
+	defers = append(defers, func() {
 		if err := netlink.QdiscDel(qdisc); err != nil {
 			fmt.Println("qdiscDel err: ", err.Error())
 		}
-	}()
-
-	objs := &dockertcObjects{}
-	err = loadDockertcObjects(objs, nil)
-	if err != nil {
-		return err
-	}
+	})
 
 	filter := netlink.BpfFilter{
 		FilterAttrs:  filteratts,
-		Fd:           objs.Mytc.FD(),
-		Name:         "mytc",
+		Fd:           fd,
+		Name:         name,
 		DirectAction: true,
 	}
 	// 等同于 tc filter add dev docker0 ingress bpf direct-action obj dockertc_bpfel_x86_64.o
 	if err := netlink.FilterAdd(&filter); err != nil {
-		return err
+		return defers, err
 	}
-	defer func() {
+	defers = append(defers, func() {
 		// 等同于 tc qdisc del dev docker0 clsact
 		if err := netlink.FilterDel(&filter); err != nil {
 			fmt.Println("filterDel err: ", err.Error())
 		}
-	}()
+	})
+	return defers, nil
+}
 
-	rd, err := ringbuf.NewReader(objs.TcMap)
+// 加载tc ebpf程序
+func MakeTc() error {
+	objs := &dockertcObjects{}
+	err := loadDockertcObjects(objs, nil)
 	if err != nil {
 		return err
 	}
-	defer rd.Close()
+
+	ifaces := nethelper.GetVethList()
+	for _, v := range ifaces {
+		f, err := watchIface(v.Name, objs.Mytc.FD(), "mytc")
+		for _, deferFunc := range f {
+			defer deferFunc()
+		}
+		if err != nil {
+			return err
+		}
+	}
 
 	go func() {
+		rd, err := ringbuf.NewReader(objs.TcMap)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer rd.Close()
 		for {
 			record, err := rd.Read()
 			if err != nil {
