@@ -19,6 +19,8 @@ import (
 type TcData struct {
 	SrcIp uint32
 	DstIp uint32
+	Sport uint16
+	Dport uint16
 }
 
 // 加载tc ebpf程序
@@ -102,9 +104,9 @@ func MakeTc(ifaceName string) error {
 				data := (*TcData)(unsafe.Pointer(&record.RawSample[0]))
 				ipAddr1 := nethelper.ResolveIP(data.SrcIp, true)
 				ipAddr2 := nethelper.ResolveIP(data.DstIp, true)
-				fmt.Printf("来源IP:%s---->目标IP:%s\n",
-					ipAddr1.To4().String(),
-					ipAddr2.To4().String(),
+				fmt.Printf("来源IP:%s:%d---->目标IP:%s:%d\n",
+					ipAddr1.To4().String(), data.Sport,
+					ipAddr2.To4().String(), data.Dport,
 				)
 			}
 		}
