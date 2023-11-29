@@ -32,7 +32,7 @@ func watchIface(ifaceName string, fd int, name string) ([]func(), error) {
 	}
 	filteratts := netlink.FilterAttrs{
 		LinkIndex: iface.Attrs().Index,
-		Parent:    netlink.HANDLE_MIN_INGRESS, // 入口
+		Parent:    netlink.HANDLE_MIN_INGRESS | netlink.HANDLE_MIN_EGRESS, // 入口出口都监听
 		Handle:    netlink.MakeHandle(0, 1),   //默认交互句柄
 		Protocol:  unix.ETH_P_ALL,
 		Priority:  1,
