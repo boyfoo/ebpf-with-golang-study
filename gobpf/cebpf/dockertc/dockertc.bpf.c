@@ -1,4 +1,4 @@
-//go:build ignore
+// go:build ignore
 #include <vmlinux.h>
 
 #include <bpf_endian.h>
@@ -15,7 +15,7 @@ char LICENSE[] SEC("license") = "Dual BSD/GPL";
 #define IP_DST_OFF (ETH_HLEN + offsetof(struct iphdr, daddr))
 #define TCP_SPORT_OFF (ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, source))
 #define TCP_DPORT_OFF (ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, dest))
-
+#define IS_PSEUDO 0x10
 struct tc_data {
     __u32 sip;  // 来源
     __u32 dip;  // 目标
@@ -58,6 +58,21 @@ static inline void set_tcp_src_port(struct __sk_buff* skb, __u16 new_port_host) 
     bpf_skb_store_bytes(skb, TCP_SPORT_OFF, &new_port, sizeof(new_port), 0);
 }
 
+// 设置目标IP
+static inline void set_tcp_ip_dest(struct __sk_buff* skb, __u32 new_ip) {
+    __u32 old_ip = bpf_htonl(load_word(skb, IP_DST_OFF));  // 读取原来的 目标IP
+    bpf_l4_csum_replace(skb, TCP_CSUM_OFF, old_ip, new_ip, IS_PSEUDO | sizeof(new_ip));
+    bpf_l3_csum_replace(skb, IP_CSUM_OFF, old_ip, new_ip, sizeof(new_ip));
+    bpf_skb_store_bytes(skb, IP_DST_OFF, &new_ip, sizeof(new_ip), 0);
+}
+// 设置源IP
+static inline void set_tcp_ip_src(struct __sk_buff* skb, __u32 new_ip) {
+    __u32 old_ip = bpf_htonl(load_word(skb, IP_SRC_OFF));  // 读取原来的 源IP
+    bpf_l4_csum_replace(skb, TCP_CSUM_OFF, old_ip, new_ip, IS_PSEUDO | sizeof(new_ip));
+    bpf_l3_csum_replace(skb, IP_CSUM_OFF, old_ip, new_ip, sizeof(new_ip));
+    bpf_skb_store_bytes(skb, IP_SRC_OFF, &new_ip, sizeof(new_ip), 0);
+}
+
 SEC("classifier")
 int mytc(struct __sk_buff* skb) {
     struct iphdr iph;
@@ -74,6 +89,9 @@ int mytc(struct __sk_buff* skb) {
     // 当前的端口
     __u16 watch_port = bpf_ntohs(tcph.dest);
     __u32 watch_ip = bpf_htonl(0xAC120003);  // 172.18.0.3 docker的ip，此处应该改成自己要测试的docker ip
+
+    // __u32 error_ip = bpf_htonl(0xAC110006); // 172.17.0.6
+
     // A -> B 把访问172.18.0.3 8080的网络修改转发到80端口
     if (iph.daddr == watch_ip && watch_port == 8080) {
         set_tcp_dest_port(skb, 80);
