@@ -59,19 +59,19 @@ static inline void set_tcp_src_port(struct __sk_buff* skb, __u16 new_port_host) 
 }
 
 // 设置目标IP
-static inline void set_tcp_ip_dest(struct __sk_buff* skb, __u32 new_ip) {
-    __u32 old_ip = bpf_htonl(load_word(skb, IP_DST_OFF));  // 读取原来的 目标IP
-    bpf_l4_csum_replace(skb, TCP_CSUM_OFF, old_ip, new_ip, IS_PSEUDO | sizeof(new_ip));
-    bpf_l3_csum_replace(skb, IP_CSUM_OFF, old_ip, new_ip, sizeof(new_ip));
-    bpf_skb_store_bytes(skb, IP_DST_OFF, &new_ip, sizeof(new_ip), 0);
-}
-// 设置源IP
-static inline void set_tcp_ip_src(struct __sk_buff* skb, __u32 new_ip) {
-    __u32 old_ip = bpf_htonl(load_word(skb, IP_SRC_OFF));  // 读取原来的 源IP
-    bpf_l4_csum_replace(skb, TCP_CSUM_OFF, old_ip, new_ip, IS_PSEUDO | sizeof(new_ip));
-    bpf_l3_csum_replace(skb, IP_CSUM_OFF, old_ip, new_ip, sizeof(new_ip));
-    bpf_skb_store_bytes(skb, IP_SRC_OFF, &new_ip, sizeof(new_ip), 0);
-}
+// static inline void set_tcp_ip_dest(struct __sk_buff* skb, __u32 new_ip) {
+//     __u32 old_ip = bpf_htonl(load_word(skb, IP_DST_OFF));  // 读取原来的 目标IP
+//     bpf_l4_csum_replace(skb, TCP_CSUM_OFF, old_ip, new_ip, IS_PSEUDO | sizeof(new_ip));
+//     bpf_l3_csum_replace(skb, IP_CSUM_OFF, old_ip, new_ip, sizeof(new_ip));
+//     bpf_skb_store_bytes(skb, IP_DST_OFF, &new_ip, sizeof(new_ip), 0);
+// }
+// // 设置源IP
+// static inline void set_tcp_ip_src(struct __sk_buff* skb, __u32 new_ip) {
+//     __u32 old_ip = bpf_htonl(load_word(skb, IP_SRC_OFF));  // 读取原来的 源IP
+//     bpf_l4_csum_replace(skb, TCP_CSUM_OFF, old_ip, new_ip, IS_PSEUDO | sizeof(new_ip));
+//     bpf_l3_csum_replace(skb, IP_CSUM_OFF, old_ip, new_ip, sizeof(new_ip));
+//     bpf_skb_store_bytes(skb, IP_SRC_OFF, &new_ip, sizeof(new_ip), 0);
+// }
 
 SEC("classifier")
 int mytc(struct __sk_buff* skb) {
