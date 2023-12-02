@@ -16,7 +16,13 @@ int myarp(struct xdp_md* ctx) {
         return XDP_DROP;
     }
     if (bpf_htons(eth->h_proto) == ARP_PROTO) {
-        bpf_printk("arp packet\n");
+        //          bpf_printk("arp packet\n");
+        struct arphdr* arp = (struct arphdr*)((char*)eth + sizeof(struct ethhdr));
+        if ((void*)arp + sizeof(*arp) > data_end) {
+            return XDP_DROP;
+        }
+        // 打印类型 到底是请求还是响应
+        bpf_printk("arp-op:%d", bpf_htons(arp->ar_op));
     }
     return XDP_PASS;
 }

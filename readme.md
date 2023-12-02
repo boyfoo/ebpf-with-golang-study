@@ -58,3 +58,10 @@ go函数需要有不同返回的可能，如判断，不然写死了查不到这
 以上代码是有一个监听80端口的`nginx`,并且在C代码中写死了，在去向为72.18.0.3，并且端口为8080的请求，转发到端口80上，如果这些ip或者端口不一样要修改C代码
 
 截止v1.2
+
+### arping
+`go run cmd/arp/main.go`
+`cat /sys/kernel/debug/tracing/trace_pipe`
+`docker-compose exec nginx1 arping -i eth0 nginx2`
+
+1请求arp 2相应arp
