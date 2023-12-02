@@ -60,6 +60,7 @@ type myarpProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type myarpMapSpecs struct {
+	ArpMap *ebpf.MapSpec `ebpf:"arp_map"`
 }
 
 // myarpObjects contains all objects after they have been loaded into the kernel.
@@ -81,10 +82,13 @@ func (o *myarpObjects) Close() error {
 //
 // It can be passed to loadMyarpObjects or ebpf.CollectionSpec.LoadAndAssign.
 type myarpMaps struct {
+	ArpMap *ebpf.Map `ebpf:"arp_map"`
 }
 
 func (m *myarpMaps) Close() error {
-	return _MyarpClose()
+	return _MyarpClose(
+		m.ArpMap,
+	)
 }
 
 // myarpPrograms contains all programs after they have been loaded into the kernel.
