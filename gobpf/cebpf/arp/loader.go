@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"gobpf/pkg/heloers/nethelper"
 	"log"
-	"net"
 	"time"
 	"unsafe"
 
@@ -18,6 +17,8 @@ import (
 type ArpData struct {
 	SMAC [6]byte
 	SIP  uint32
+	DIP  uint32
+	OP   uint16
 }
 
 func LoadArp() {
@@ -70,12 +71,21 @@ func LoadArp() {
 			log.Printf("reading from reader: %s", err)
 			continue
 		}
+
 		if len(record.RawSample) > 0 {
 			data := (*ArpData)(unsafe.Pointer(&record.RawSample[0]))
-			ip := net.IP(nethelper.ResolveIP(data.SIP, true))
-			fmt.Printf("ARP请求Mac是：%s, IP是：%s\n",
-				hex.EncodeToString(data.SMAC[:]), ip.String(),
-			)
+			macStr := hex.EncodeToString(data.SMAC[:])
+			sip := nethelper.ResolveIP(data.SIP, true)
+			dip := nethelper.ResolveIP(data.DIP, true)
+			if data.OP == 1 {
+				fmt.Printf("%s(%s)问: 谁是%s?\n",
+					sip, macStr, dip,
+				)
+			} else {
+				fmt.Printf("%s回答%s：我是,mac=%s\n",
+					sip, dip, macStr,
+				)
+			}
 		}
 	}
 
