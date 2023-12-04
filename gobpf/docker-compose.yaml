@@ -3,6 +3,9 @@ services:
   nginx1:
     image: nginx:latest
     container_name: nginx1
+    networks:
+      mynetwork:
+        ipv4_address: 172.18.0.2
     ports:
       - 8081:80
     restart: always
@@ -10,8 +13,21 @@ services:
   nginx2:
     image: nginx:latest
     container_name: nginx2
+    networks:
+      mynetwork:
+        ipv4_address: 172.18.0.3
     ports:
       - 8082:80
+    restart: always
+
+  nginx3:
+    image: nginx:latest
+    container_name: nginx3
+    networks:
+      mynetwork:
+        ipv4_address: 172.18.0.4
+    ports:
+      - 8083:80
     restart: always
 
 #   mysqlapp:
@@ -33,3 +49,10 @@ services:
 #       go env -w GOPROXY=https://goproxy.cn,direct && go run goapp/mysqlapp.go
 #       "
     
+networks:
+  mynetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/24
