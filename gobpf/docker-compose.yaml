@@ -52,6 +52,7 @@ services:
 networks:
   mynetwork:
     driver: bridge
+    name: mynetwork
     ipam:
       driver: default
       config:
