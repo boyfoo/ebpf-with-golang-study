@@ -48,10 +48,9 @@ func (a *ArpHandler) watch() {
 				fmt.Println("收到arp请求")
 				//go a.check(arps.DstProtAddress, arps)
 				go a.CheckIfNeedReply(
-					arps,
-					// arps.SourceProtAddress, // 来源ip
-					// arps.SourceHwAddress,   // 来源mac
-					// arps.DstProtAddress,    // 要访问的ip
+					arps.SourceProtAddress, // 来源ip
+					arps.SourceHwAddress,   // 来源mac
+					arps.DstProtAddress,    // 要访问的ip
 				)
 			}
 		}
@@ -59,10 +58,10 @@ func (a *ArpHandler) watch() {
 }
 
 // 检测 是否要进行拦截 和 ARP欺骗
-func (a *ArpHandler) CheckIfNeedReply(request *layers.ARP) error {
-	if net.IP(request.DstProtAddress).To4().String() == a.hookIP.To4().String() {
-		fmt.Printf("收到来自%s的arp请求，正在构建响应包 \n", net.IP(request.SourceProtAddress).To4().String())
-		err := a.SendReply(request.SourceHwAddress, request.SourceProtAddress)
+func (a *ArpHandler) CheckIfNeedReply(srcIP net.IP, srcMac net.HardwareAddr, targetIP net.IP) error {
+	if targetIP.To4().String() == a.hookIP.To4().String() {
+		fmt.Printf("收到来自%s的arp请求，正在构建响应包 \n", srcIP.To4().String())
+		err := a.SendReply(srcMac, srcIP)
 		if err != nil {
 			fmt.Println(err)
 		}

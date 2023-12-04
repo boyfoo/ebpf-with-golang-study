@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gobpf/pkg/heloers/nethelper"
 	"log"
+	"net"
 	"time"
 	"unsafe"
 
@@ -15,15 +16,25 @@ import (
 )
 
 type ArpData struct {
-	SMAC [6]byte
-	SIP  uint32
-	DIP  uint32
+	SMAC [6]byte // 源mac
+	SIP  uint32  // 源ip
+	DIP  uint32  // 目的ip
 	OP   uint16
 }
 
 func LoadArp() {
+	arpHandler, err := NewArpHandler(
+		"br-08d723f5a04b",
+		net.ParseIP("172.18.0.9"),
+		net.HardwareAddr{0x02, 0x42, 0xac, 0x11, 0x00, 0x07},
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer arpHandler.Close()
+
 	obj := &myarpObjects{}
-	err := loadMyarpObjects(obj, nil)
+	err = loadMyarpObjects(obj, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -78,6 +89,14 @@ func LoadArp() {
 			sip := nethelper.ResolveIP(data.SIP, true)
 			dip := nethelper.ResolveIP(data.DIP, true)
 			if data.OP == 1 {
+				if err := arpHandler.CheckIfNeedReply(
+					net.IP(sip),
+					data.SMAC[:],
+					net.IP(dip),
+				); err != nil {
+					fmt.Println("发送欺骗数据失败")
+				}
+
 				fmt.Printf("%s(%s)问: 谁是%s?\n",
 					sip, macStr, dip,
 				)
