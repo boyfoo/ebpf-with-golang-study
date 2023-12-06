@@ -93,3 +93,19 @@ go函数需要有不同返回的可能，如判断，不然写死了查不到这
 `docker-compose exec nginx1 arping 172.18.0.9`
 
 截止v1.7
+
+
+### 使用ebpf监听go程序的内存分配
+
+go用户态分配内存，调用了`runtime.mallocgc`分配内存大小
+
+`go run cmd/gotools/main.go` 
+
+```
+go build -o httpapp cmd/http/main.go
+./httpapp
+```
+
+需要提前把被监听的`httpapp`目录写到`cmd/gotools/main.go`里
+
+v2.0

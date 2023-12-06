@@ -18,5 +18,6 @@ func main() {
 		// 这里可以写一些业务逻辑
 		w.Write([]byte(MyRes(r)))
 	})
+	fmt.Println("启动http")
 	http.ListenAndServe(":8899", nil)
 }
